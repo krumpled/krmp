@@ -1,0 +1,67 @@
+#!/usr/bin/env node
+
+var commander = require("commander"),
+    sails = require("sails"),
+    dotenv = require("dotenv"),
+    path = require("path"),
+    coffee = require("coffee-script");
+
+coffee.register();
+
+dotenv.load();
+
+commander
+  .command("quote [stocks...]")
+  .option("-s --save", "save results to database")
+  .option("-a --all", "get all symbols")
+  .description("quote symbol prices")
+  .action(function(stocks, cmd, options) {
+    var env = new sails.Sails(),
+        api_path = path.join(__dirname, "./node_modules/krumpled-api/");
+
+    function failed(err) {
+      process.exit(-1);
+    }
+
+    function success() {
+      process.exit(0);
+    }
+
+    function envHot(err) {
+      if(err) return failed(err);
+
+      var quote = require("./lib/quote");
+
+      if(cmd.all)
+        return quote.all(cmd.save).then(success).catch(failed);
+
+      require("./lib/quote")(stocks, cmd.save)
+        .then(success)
+        .catch(failed);
+    }
+
+    env.load({
+      appPath: api_path,
+      hooks: {
+        "orm": require("sails/lib/hooks/orm"),
+        "moduleloader": require("sails/lib/hooks/moduleloader"),
+        "logger": false,
+        "request": false,
+        "views": false,
+        "blueprints": false,
+        "responses": false,
+        "sockets": false,
+        "pubsub": false,
+        "csrf": false,
+        "cors": false,
+        "i18n": false,
+        "http": false,
+        "policies": false,
+        "controllers": false,
+        "session": false,
+        "grunt": false
+      }
+    }, envHot);
+  });
+
+commander.parse(process.argv);
