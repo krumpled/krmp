@@ -31,6 +31,9 @@ module.exports = do ->
     ftp_client = new ftp()
 
     failedFtpConnect = (err) ->
+      ftp_client.close()
+      ftp_client.destroy()
+
       log "failed connecting to ftp for #{list_name}"
       reject new Error err
 
@@ -83,6 +86,9 @@ module.exports = do ->
       true
 
     read = (err, result) ->
+      ftp_client.close()
+      ftp_client.destroy()
+
       if err
         log "failed readying list file..."
         return reject new Error err
