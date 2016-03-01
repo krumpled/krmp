@@ -12,8 +12,9 @@ dotenv.load();
 
 commander
   .command("quote [stocks...]")
-  .option("-s --save", "save results to database")
-  .option("-a --all", "get all symbols")
+  .option("-s, --save", "save quote results to database")
+  .option("-a, --all", "get all symbols")
+  .option("-l, --list [list]", "load symbols from a specific list: \"nasdaq\" or \"other\"", /nasdaq|other/i)
   .description("quote symbol prices")
   .action(function(stocks, cmd, options) {
     var env = new sails.Sails(),
@@ -32,12 +33,15 @@ commander
 
       var quote = require("./lib/quote");
 
+      if(cmd.list) {
+        var list_name = /^other/i.test(cmd.list) ? "otherlisted" : "nasdaqlisted";
+        return quote.list(list_name, cmd.save).then(success).catch(failed);
+      }
+
       if(cmd.all)
         return quote.all(cmd.save).then(success).catch(failed);
 
-      require("./lib/quote")(stocks, cmd.save)
-        .then(success)
-        .catch(failed);
+      quote(stocks, cmd.save).then(success).catch(failed);
     }
 
     env.load({
