@@ -17,6 +17,9 @@ module.exports = do ->
     str = "#{char or ZERO_CHAR}#{str}" while str.length < len
     str
 
+  printQuote = (quote) ->
+    process.stdout.write "[#{quote.symbol}] #{quote.price}\n"
+
   processList = (list_name, do_save) ->
     [resolve, reject] = [null, null]
     symbols = null
@@ -47,8 +50,8 @@ module.exports = do ->
 
       failedBatch = ->
         if ++attempts >= MAX_RETRIES
-          log "failed on batch #{batch_index + 1} too many times, exiting"
-          return false
+          log "failed on batch #{batch_index + 1} too many times, skipping..."
+          return ++batch_index and loadBatch()
 
         log "failed - retrying."
         loadBatch()
@@ -106,20 +109,15 @@ module.exports = do ->
     new bluebird resolution
 
   getQuote = (stocks, do_save) ->
-    [resolve, reject] = [null, null]
-
     finished = (quotes) ->
-      resolve stocks
+      printQuote q for q in quotes
+      true
 
-    failed = ->
-      reject new Error -1
+    QuoteService.lookup stocks, null, do_save
+      .then finished
 
-    resolution = (fns...) ->
-      [resolve, reject] = fns
-      finished true
-
-    new bluebird resolution
-
+  getQuote.list = (list_name, do_save) ->
+    processList list_name, do_save
 
   getQuote.all = (do_save) ->
     promise = {}
@@ -146,8 +144,8 @@ module.exports = do ->
       promise.reject = reject
 
       (bluebird.all [
-        processList "nasdaqlisted"
-        processList "otherlisted"
+        processList "nasdaqlisted", do_save
+        processList "otherlisted", do_save
       ]).then finished
         .catch errored
 
