@@ -31,7 +31,6 @@ module.exports = do ->
     ftp_client = new ftp()
 
     failedFtpConnect = (err) ->
-      ftp_client.close()
       ftp_client.destroy()
 
       log "failed connecting to ftp for #{list_name}"
@@ -64,10 +63,12 @@ module.exports = do ->
         .catch failedBatch
 
     finishedAll = ->
+      ftp_client.destroy()
       log "finished with #{list_name}"
       resolve true
 
     failedAll = ->
+      ftp_client.destroy()
       reject new Error -1
 
     parsed = (err, data) ->
@@ -86,10 +87,8 @@ module.exports = do ->
       true
 
     read = (err, result) ->
-      ftp_client.close()
-      ftp_client.destroy()
-
       if err
+        ftp_client.destroy()
         log "failed readying list file..."
         return reject new Error err
 
@@ -98,6 +97,7 @@ module.exports = do ->
         relax: true
       }, parsed
 
+      log "finished reading, piping to csv parser"
       result.pipe parser
 
     connected = ->
